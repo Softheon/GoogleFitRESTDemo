@@ -1,0 +1,92 @@
+﻿@{
+    ViewBag.Title = "HeartRate";
+}
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+
+    $(function () {
+
+        // Initalize the datepicker input.
+        var startDate = moment().format('MM/DD/YYYY');
+
+        $('.datepicker').datetimepicker({
+            format: 'MM/DD/YYYY',
+            maxDate: startDate,
+            showTodayButton: true
+        });
+
+        // Initalize the submit button.
+        $('#submit').click(function () {
+            $('#alert').remove();
+            startDate = $('#start_date').val();
+            loadData();
+        });
+
+        // Load the Visaulization API and the corechart package.
+        google.charts.load('current', { 'packages': ['line'] });
+
+        google.charts.setOnLoadCallback(loadData);
+
+        // Loads the chart data with an AJAX call to the controller.
+        function loadData() {
+            $.ajax({
+                url: '/GoogleFit/GetHeartRate',
+                dataType: 'json',
+                data: { 'startDate': startDate },
+                async: false,
+                success: function (data) {
+                    if (data) {
+                        drawChart(data, "Heart Rate", "measuered in beats per minute (BPM)");
+                    }
+                }
+            });
+        }
+
+        // Draws the Google chart.
+        function drawChart(data, title, subtitle) {
+
+            // Set chart options
+            var options = {
+                chart: {
+                    title: title,
+                    subtitle: subtitle
+                },
+                width: 1170,
+                height: 500
+            };
+
+            var dataTable = new google.visualization.DataTable(data);
+
+            if (dataTable.getNumberOfRows() > 0) {
+                // Instantiate and draw our chart, passing in some options.
+                var chart = new google.charts.Line(document.getElementById('line_chart'));
+                chart.draw(dataTable, options);
+            } else {
+                showAlert('No data found.  Please select another date.', 'danger');
+            }
+        }
+
+        // Displays the alert message.
+        function showAlert(message, alertType) {
+            $('#alert_placeholder').html('<div id="alert" class="alert alert-' + alertType + '" role="alert">' + message + '</div>');
+        }
+    });
+
+</script>
+<div class="row">
+    <form id="date_form" class="form-inline">
+        <div class="form-group">
+            <label for="start_date">Date</label>
+            <div class="input-group">
+                <input class="form-control datepicker" id="start_date" name="startDate" placeholder="Enter a date" type="text" />
+                <span class="input-group-addon">
+                    <span class="glyphicon glyphicon-calendar"></span>
+                </span>
+            </div>
+        </div>
+        <button id="submit" type="button" class="btn btn-success">Submit</button>
+    </form>
+</div>
+<div id="line_chart"></div>
+<div id="alert_placeholder"></div>
